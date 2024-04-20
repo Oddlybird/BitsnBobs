@@ -416,7 +416,7 @@ public class CustomTown {
         name = name.replace("mbcamb", "mb");
         name = name.replace("ssc", "sc");
         name = name.replace("fff", "ff");
-        name = name.replace("", "");
+        name = name.replace("uper", "upper");
         name = name.replace("aiea", "ars");
         name = name.replace("", "");
         name = name.replace("", "");

@@ -1,51 +1,45 @@
 package oddbird.bitsnbobs;
 import java.util.Random;
+import javax.swing.*;     // For the GUI
+import java.awt.event.*;  // more GUI
+import java.awt.image.*;  // more gui
+import java.awt.*;        // more GUI
+import java.util.Arrays;
+import java.util.ArrayList;
+import com.google.gson.Gson; // java obj <-> JSON string
+
 @SuppressWarnings("unused")
 
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
- */
 
 /**
  * This sections out a grid into aesthetic blobs
  * @author wirri
+ * 
+ * Note to self : Refactor entire code into proper object, now that you know what's needed in each bit
+ * - Data object for a LOT (contains name, list of coordinates, list of neighbors)
+ * - Data object for a parcel (contains name, list of lots, list of neighboring parcels)
+ * - Data object for a nation ()
+ * - Data object for the whole shebang (contains grid, maxX maxY, which namegen(s) to use, )
  */
 public class Blobber {
     static Random rand = new Random();
-        // Gives a 16x16 grid, increase later and build via a pair of for loops rather than manually
-    public int minx = 0;    public int maxx = 15;
-    public int miny = 0;    public int maxy = 15;
-    public String[][] claim = {
-        //0    1    2    3    4    5    6    7    8    9    10   11   12   13   14   15
-        {".", ".", ".", ".", ".", ".", ".", ".", ".", ".", ".", ".", ".", ".", ".", "."}, // 0
-        {".", ".", ".", ".", ".", ".", ".", ".", ".", ".", ".", ".", ".", ".", ".", "."}, // 1
-        {".", ".", ".", ".", ".", ".", ".", ".", ".", ".", ".", ".", ".", ".", ".", "."}, // 2
-        {".", ".", ".", ".", ".", ".", ".", ".", ".", ".", ".", ".", ".", ".", ".", "."}, // 3
-        {".", ".", ".", ".", ".", ".", ".", ".", ".", ".", ".", ".", ".", ".", ".", "."}, // 4
-        {".", ".", ".", ".", ".", ".", ".", ".", ".", ".", ".", ".", ".", ".", ".", "."}, // 5
-        {".", ".", ".", ".", ".", ".", ".", ".", ".", ".", ".", ".", ".", ".", ".", "."}, // 6
-        {".", ".", ".", ".", ".", ".", ".", ".", ".", ".", ".", ".", ".", ".", ".", "."}, // 7
-        {".", ".", ".", ".", ".", ".", ".", ".", ".", ".", ".", ".", ".", ".", ".", "."}, // 8
-        {".", ".", ".", ".", ".", ".", ".", ".", ".", ".", ".", ".", ".", ".", ".", "."}, // 9
-        {".", ".", ".", ".", ".", ".", ".", ".", ".", ".", ".", ".", ".", ".", ".", "."}, // 10
-        {".", ".", ".", ".", ".", ".", ".", ".", ".", ".", ".", ".", ".", ".", ".", "."}, // 11
-        {".", ".", ".", ".", ".", ".", ".", ".", ".", ".", ".", ".", ".", ".", ".", "."}, // 12
-        {".", ".", ".", ".", ".", ".", ".", ".", ".", ".", ".", ".", ".", ".", ".", "."}, // 13
-        {".", ".", ".", ".", ".", ".", ".", ".", ".", ".", ".", ".", ".", ".", ".", "."}, // 14
-        {".", ".", ".", ".", ".", ".", ".", ".", ".", ".", ".", ".", ".", ".", ".", "."}, // 15
-        };
+        // Gives a 16x16 grid, initializes in constructor with "BlankGrid(claim, maxx, maxy);"
+    public int minx = 0;    public int maxx = 16;
+    public int miny = 0;    public int maxy = 16;
+    public String[][] claim = new String[maxx][maxy];
+    
     // Set these to generated names eventually
     public String[] names = {
         "A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M",
-        "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z"};
+        "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z",
+        "1", "2", "3", "4", "5", "6", "7", "8", "9", "0", "&", "$", "%"};
        
     public Blobber() {
-        // Current location we are adding to
-        int x = 7;
-        int y = 7;
+        // initialize blank grid, Start near the center; hard-coded (7,7).
+        claim = BlankGrid(claim, maxx, maxy);
+        int x = 7; int y = 7;
         
-        // set current point to first name, and spread.
+        // set current point to the first name in our array, and spread its lot
         claim[x][y] = names[0];  
         Spreadlot(x,y);
         
@@ -56,7 +50,7 @@ public class Blobber {
         int i = 0;
         int imax = 5;
 
-        // Trail a random shape around
+        // Trail a random shape of lots around the grid
         while ((coord[0]+coord[1]<9001)&&(i<imax)) {
             // set current point to next name, and spread.
             claim[x][y] = names[i];  
@@ -67,7 +61,8 @@ public class Blobber {
             i++;
             };
         
-        // Next Shape
+        // Next Shape; this is separate from the first one to create better overall geometry.
+        // Functionally it's literally just a repeat of the previous step and could be put in a function.
         coord = FindNearbyEmpty(7,7); // point near center
         x = coord[0]; y = coord[1];
         imax = imax + rand.nextInt(5);
@@ -81,7 +76,7 @@ public class Blobber {
             i++;
             };       
 
-        // Next Shape
+        // Next Shape, same as the last two.
         coord = FindNearbyEmpty(7,7); // point near center
         x = coord[0]; y = coord[1];
         imax = imax + rand.nextInt(5);
@@ -96,6 +91,7 @@ public class Blobber {
             };       
             
         // Fill in the blob around the center a bit
+        // This is the same aside from where findnearbyempty is centered
         imax = imax + rand.nextInt(5);
         while ((coord[0]+coord[1]<9001)&&(i<imax)) {
             // set current point to next name, and spread.
@@ -109,61 +105,103 @@ public class Blobber {
             
             
     }
+
+    // Display a grid in console format when the names are single letters
+    public void print() {
+        String temp = "";
+        for (int j = 0; j < 16; j++) {
+            temp = "";
+            for (int i = 0; i < 16; i++) {temp = temp + claim[j][i];}
+            System.out.println(temp);
+            }
+    }
     
+    // Functions used to create and populate a grid
+    private String[][] BlankGrid(String[][] grid, int x, int y) {
+        for (int j = 0; j < x; j++) {
+            for (int i = 0; i < y; i++) {
+                grid[i][j] = ".";
+                }//i
+            }//j
+        return grid;
+    }
     
     private void Spreadlot(int xx, int yy) {
-        int blocklimit = 2 + rand.nextInt(3) + rand.nextInt(3); // max 6
+        // blocklimit is the maximum size in blocks of the area
+        int blocklimit = 2 + rand.nextInt(3); // 4 max
+        if (rand.nextBoolean()) {
+            blocklimit = blocklimit + rand.nextInt(2);  // 50% chance of up to 5 max
+            if (rand.nextBoolean()) {
+                blocklimit = blocklimit + rand.nextInt(3); // 25% chance of up to 7 max
+                }; // end 8
+            }; // end 6
         int blocksclaimed = CountClaimed(xx,yy);
         int neighbors = CountLotNeighbors(xx,yy);
         int i = 0;
-        int numloops = 2;
+        int numloops = 1;  // works fine when this is 2
 
-        String[] spots = {"", "", "N", "S", "E", "W", "NE", "NW", "SE", "SW"};
+        String[] spots = {"", "N", "S", "E", "W", "NE", "NW", "SE", "SW"};
         spots = Shuffle(spots);
         int[] coord = ConvertCoord(xx, yy, spots[0]);
         int tempx = coord[0]; int tempy = coord[1];
         int limit = blocklimit-blocksclaimed;
         
-        while ((blocksclaimed<blocklimit)&&(neighbors>0)&&(i<spots.length)&&(numloops>0)) {
-            // Get a coordinate inside the first ring
+        while ((limit>0)&&(neighbors>0)&&(i<spots.length)&&(numloops>0)) {
+            // Get a coordinate inside the first ring around the starting point
             coord = ConvertCoord(xx, yy, spots[i]);
             tempx = coord[0]; tempy = coord[1];
-            // If that coordinate is claimed by the lot, attempt to spread from there and update blockclaim
+            // If that coordinate is claimed by the lot, 
             if (Equals(tempx, tempy, xx, yy))   {
+                // attempt to spread from there and update blockclaim
                 Spread(tempx, tempy, limit); 
                 blocksclaimed = CountClaimed(xx,yy);
                 limit = blocklimit-blocksclaimed;
+                neighbors = CountLotNeighbors(xx,yy);
                 }; 
-            // Decrement counter, and go to next option
-            i++;
-            if (i==spots.length) {numloops--; i=0;};
+            // adjust counters, and go to next option
+            i++; // counting up through the entries in spots[]
+            if (i==spots.length) {numloops--; i=0;}; 
             }// end while
     }
     
     private void Spread(int xx, int yy, int blocksleft) {
         // Only call this on non-null (not ".") blocks.
         String name = claim[xx][yy];  // set our current blob name from the coords given
-        boolean cont = true;          // Consider using a counter of some kind for number of loops?  Eh.
-        int chancesuccess = 25;
-        if (CountFreeNeighbors(xx,yy)==3) {chancesuccess=50;};
-        if (CountFreeNeighbors(xx,yy)==2) {chancesuccess=75;};
-        if (CountFreeNeighbors(xx,yy)==1) {chancesuccess=100;};
+        boolean cont = true; boolean hasclaimedsomething = false;
+        // Put the spots in a random order.
         String[] spots = {"N", "S", "E", "W"};
         spots = Shuffle(spots);
+        // Initialize the tempx tempy to the first place in Spots
         int[] coord = ConvertCoord(xx, yy, spots[0]);
         int tempx = coord[0]; int tempy = coord[1];
-        
+        // Enter the conditional loop, which breaks immediately when a condition fails
         while ((HasFreeNeighbors(xx,yy))&&(blocksleft>0)&&(cont)) {
-            // attempt claim
-            if (CountFreeNeighbors(xx,yy)>1) {
-                if ((rand.nextInt(100)<chancesuccess)) {
-                    if (Empty(tempx, tempy)) {blocksleft--; claim[tempx][tempy]=name;};};    
-                };
-            // Consider exiting the loop early.
-            if ((rand.nextInt(100)>80)) {cont = false;};
+            // BLOCK 1 / 4
+            // If the first spot is empty, claim it.
+            if (Empty(tempx, tempy)) {claim[tempx][tempy]=name; hasclaimedsomething=true; blocksleft--;};
+            // If something has been claimed, consider stopping.
+            if ((hasclaimedsomething)&&(rand.nextInt(10)>5)) {cont=false;};
+            
+            // BLOCK 2 / 4
+            coord = ConvertCoord(xx, yy, spots[1]);
+            tempx = coord[0]; tempy = coord[1];
+            if (Empty(tempx, tempy)) {claim[tempx][tempy]=name; hasclaimedsomething=true; blocksleft--;};
+            if ((hasclaimedsomething)&&(rand.nextInt(10)>4)) {cont=false;};
+
+            // BLOCK 3 / 4
+            coord = ConvertCoord(xx, yy, spots[2]);
+            tempx = coord[0]; tempy = coord[1];
+            if (Empty(tempx, tempy)) {claim[tempx][tempy]=name; hasclaimedsomething=true; blocksleft--;};
+            if ((hasclaimedsomething)&&(rand.nextInt(10)>2)) {cont=false;};
+            
+            // BLOCK 4 / 4
+            coord = ConvertCoord(xx, yy, spots[3]);
+            tempx = coord[0]; tempy = coord[1];
+            if (Empty(tempx, tempy)) {claim[tempx][tempy]=name; hasclaimedsomething=true; blocksleft--;};
+            // Stop now, you've tried all four possibilities.
+            cont = false; // break out of the conditional loop after attempting all four spots.
             }
-        // Some attempts have been made.  Return from whence you came.        
-        // Consider adding a successfully claimed location to some kind of list here?
+        
     };
 
     private int[] FindNearbyEmpty(int xx, int yy) {
@@ -235,20 +273,34 @@ public class Blobber {
         int[] coords = {xwin, ywin};
         return coords;
     };
-    
-    public void print() {
-        String temp = "";
-        for (int j = 0; j < 16; j++) {
-            temp = "";
-            for (int i = 0; i < 16; i++) {temp = temp + claim[j][i];}
-            System.out.println(temp);
-            }
+
+    private String[] Shuffle(String[] input) {
+        for (int i = 0; i < input.length; i++) {
+            int randomIndexToSwap = rand.nextInt(input.length);
+            String temp = input[randomIndexToSwap];
+            input[randomIndexToSwap] = input[i];
+            input[i] = temp;
+            }//for
+        return input;
     }
     
+    private int[] ConvertCoord(int xx, int yy, String dir) {
+        int tempx = xx; int tempy = yy;
+        if (dir.contains("N")) {tempy = yy - CountHas(dir, 'N');};
+        if (dir.contains("S")) {tempy = yy + CountHas(dir, 'S');};
+        if (dir.contains("W")) {tempx = xx - CountHas(dir, 'W');};
+        if (dir.contains("E")) {tempx = xx + CountHas(dir, 'E');};
+        // if dir = "" or contains no NSEW, do nothing, return original input coords.
+        int[] coords = {tempx, tempy};
+        return coords;
+    }
+        
+    // Basic information-gathering functions, during grid creation
+    // Typically involves individual selected input squares or an input string
     private int CountClaimed(int xx, int yy) {
         int num = 0;
-        for (int j = 0; j < 16; j++) {
-            for (int i = 0; i < 16; i++) {
+        for (int j = 0; j < maxx; j++) {
+            for (int i = 0; i < maxy; i++) {
                 if (Equals(xx,yy,i,j)) {
                     num++;
                     };// if the square shares the same name as our reference point
@@ -283,6 +335,13 @@ public class Blobber {
         return neighb;
     }
     
+    public int CountHas(String instr, char letter) {
+        int c = 0;
+        for (int x = 0; x<instr.length(); x++) {
+            if (instr.charAt(x)==letter) {c++;};};
+        return c;
+        }
+
     private Boolean HasFreeNeighbors(int xx, int yy) {
         boolean check = false;
         if (CountFreeNeighbors(xx,yy)>0) {check = true;};
@@ -312,36 +371,171 @@ public class Blobber {
     
     private Boolean OutOfBounds(int xx, int yy) {
         boolean check = false;  // most things are probably in bounds
-        if ((xx<minx)||(xx>maxx)) {check=true;};  // if out of bounds, True.
-        if ((yy<miny)||(yy>maxy)) {check=true;};  // If out of bounds, True.
+        if ((xx<minx)||(xx>maxx-1)) {check=true;};  // if out of bounds, True.
+        if ((yy<miny)||(yy>maxy-1)) {check=true;};  // If out of bounds, True.
         return check;
     }
-
-    private String[] Shuffle(String[] input) {
-        for (int i = 0; i < input.length; i++) {
-            int randomIndexToSwap = rand.nextInt(input.length);
-            String temp = input[randomIndexToSwap];
-            input[randomIndexToSwap] = input[i];
-            input[i] = temp;
-            }//for
-        return input;
-    }
     
-    private int[] ConvertCoord(int xx, int yy, String dir) {
-        int tempx = xx; int tempy = yy;
-        if (dir.contains("N")) {tempy = yy - counthas(dir, 'N');};
-        if (dir.contains("S")) {tempy = yy + counthas(dir, 'S');};
-        if (dir.contains("W")) {tempx = xx - counthas(dir, 'W');};
-        if (dir.contains("E")) {tempx = xx + counthas(dir, 'E');};        
-        int[] coords = {tempx, tempy};
+    // This section is for meta-analysis on a completed claim[][] grid.
+    
+    // Produce a full list of the area-names in use
+    private ArrayList<String> ListLots() {
+        ArrayList<String> lots = new ArrayList<String>();
+        boolean onthelist = false;
+        // Check every square
+        for (int j = 0; j < maxx; j++) {
+            for (int i = 0; i < maxy; i++) {
+                // If unclaimed,
+                if (!(claim[i][j].equals('.'))) {
+                    // Check if it's on the list
+                    onthelist = false;
+                    for (String s : lots) {
+                        if ((claim[i][j].equals(s))) {onthelist=true;};
+                        };  // end for loop
+                    if (Empty(i, j)) {onthelist=true;};
+                    // if still not on the list, add it.
+                    if (!onthelist) {lots.add(claim[i][j]);};  
+                    };// end unclaimedcheck
+                }//i
+            }//j
+        return lots;
+    }
+
+    // Produce a full list of the coordinates claimed by each area
+    private ArrayList<Tuple>[] ListClaims() {
+        // need list of names
+        ArrayList<String> lots = new ArrayList<String>();
+        lots = ListLots();
+        // We now have a full list of all used lot names
+        // lots.size() tells us how many lists we need in our arraylist
+        ArrayList<Tuple>[] coords = new ArrayList[lots.size()];
+        // initialize that many lists in our array of array lists
+        for (int i=0; i<lots.size(); i++) {
+            coords[i] = new ArrayList<Tuple>();
+            }
+        // Create a generic tuple to override
+        Tuple temp = new Tuple(0,0);
+        
+        // Begin primary logic
+        // Check every square
+        for (int b = 0; b < maxx; b++) {
+            for (int a = 0; a < maxy; a++) {
+                // If the square is not claimed
+                if (!(Empty(a,b))) {
+                    // Check its name against every name in lots
+                    for (int c = 0; c<lots.size(); c++) {
+                        // When they match,
+                        if (claim[a][b].equals(lots.get(c))) {
+                            // add this tuple to that list
+                            temp = new Tuple(a,b);
+                            coords[c].add(temp);                            
+                            };
+                        }
+                    };                
+                }//a
+            }//b
         return coords;
     }
-    
-    public static int counthas(String instr, char letter) {
-        int c = 0;
-        for (int x = 0; x<instr.length(); x++) {
-            if (instr.charAt(x)==letter) {c++;};};
-        return c;
-        }
 
+    // Convert the coord[][] listarray into a string
+    public String ListClaimsToString() {
+        String output = "";
+        ArrayList<String> names = ListLots();
+        ArrayList<Tuple>[] coord = ListClaims();
+        
+        for (int i=0; i<names.size(); i++) {
+            output = output + names.get(i) + " (";
+            for (int j=0; j<coord[i].size(); j++) {
+                output = output + coord[i].get(j).ToStr() + ", ";
+                }// j
+            output = output + " ), \n";
+            } //i
+        
+        output = output.replaceAll("\\,  \\)", ")");
+
+        return output;
+    }
+    
+    // TODO: create data object containing all lots on the grid  and their associated info
+    // ---- The arraylist of touples is a good start, but not what is needed.
+    // TODO: return list of all neighbors of the given lot (and their directions?)
+    // ---- If a N S E W (uppercase) or nw ne sw se (lowercase) direction is given for every 
+    // ---- connection point, allowing repeats (ie, internal corners), that gives a strength / size
+    // ---- for every border.  Count number of capitals (each=1) and lowercase (each=0.25, so "sw" = 0.5) and sum
+    // ---- can give plaintext direction of lot too - if it contains N or n add "north", if it contains E or e add "east", etc.
+    // ---- include error text for if neighbor is both east and west or north and south of an outjutting segment
+    // TODO: 
+    
+/*
+	public static void maingui() {
+            // Rename this to main if you want to run blobber without calling it from another file.
+            // Copy it to another file if you want to call blobber from there
+            javax.swing.SwingUtilities.invokeLater(new Runnable() {
+                public void run() {
+                    Blobber.createAndShowGUI();				
+                    }
+                });               
+            }
+*/
+    
+	public static void createAndShowGUI() {
+		// make window
+		JFrame frame = new JFrame("Blobber");
+		frame.setSize(900, 500);
+		Dimension boxsize = new Dimension(900, 500);
+		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+		// define window
+		JPanel panel = new JPanel();
+		// DisplayTroll readout1 = new DisplayTroll();
+		// readout1.setPreferredSize(boxsize);
+		frame.add(panel);
+		// frame.add(readout1);
+
+		// menu
+		var menuBar = new JMenuBar();
+		var generalMenu = new JMenu("General");
+		generalMenu.setMnemonic(KeyEvent.VK_F);
+		
+		//general menu
+		var gennamesMenuItem = new JMenuItem(" 150 names to file");
+		gennamesMenuItem.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {buttonGenNames();}
+			});
+                
+		var exitMenuItem = new JMenuItem("Exit");
+		exitMenuItem.setMnemonic(KeyEvent.VK_E);
+		exitMenuItem.setToolTipText("Exit");
+		exitMenuItem.addActionListener((event) -> System.exit(0));
+				
+		// assemble menubar
+		generalMenu.add(gennamesMenuItem);
+		generalMenu.add(exitMenuItem);
+		// add menus to main bar
+		menuBar.add(generalMenu);
+		// add menubar to frame
+		frame.setJMenuBar(menuBar);		
+		// Place toolbar and components
+		Container contentPane = frame.getContentPane();
+		// contentPane.add(readout1, BorderLayout.WEST); // .WEST, .CENTER, .EAST
+		
+		// display window
+		frame.setVisible(true);
+	}
+		
+	private static void buttonGenNames() {
+		Gson gson = new Gson();
+		String txt = new String("");
+		fio fileinterface = new fio();
+				
+		int x = 0;
+		int numbertogenerate = 150;
+		while (x<numbertogenerate) {
+			txt = txt + CustomTown.gen();
+			txt = txt + ", ";
+			x++;
+			}
+		fileinterface.save("names.txt",txt);
+	}
+    
+    
 }

@@ -5,6 +5,14 @@
 
 package oddbird.bitsnbobs;
 import java.util.Random;
+/*
+import javax.swing.*;     // For the GUI
+import java.awt.event.*;  // more GUI
+import java.awt.image.*;  // more gui
+import java.awt.*;        // more GUI
+import java.util.Arrays;
+import com.google.gson.Gson; // java obj <-> JSON string
+*/
 @SuppressWarnings("unused")
 
 /**
@@ -13,14 +21,28 @@ import java.util.Random;
  */
 public class BitsnBobs {
     static Random rand = new Random();
+    
     public static void main(String[] args) {
-        //String temp = gen("cus", 10);
-        //System.out.println(temp);
+        mainconsole();
+        // maingui(); // alternate version
+    }// end main
+
+	public static void maingui() {
+            javax.swing.SwingUtilities.invokeLater(new Runnable() {
+                public void run() {
+                    Blobber.createAndShowGUI();				
+                    }
+                });               
+            }
+    
+    public static void mainconsole() {
+        String temp = gen("cus", 100);
+        System.out.println(temp);
         //
         Blobber blobs = new Blobber();
         blobs.print();
-        
-    }// end main
+        System.out.println(blobs.ListClaimsToString());
+    }// end console version of main
     
     public static String gen(String code, int num) {
         String var = "";
